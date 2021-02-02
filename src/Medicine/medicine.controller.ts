@@ -8,32 +8,32 @@ export class MedicineController{
     constructor(private readonly medicineService: MedicineService){}
 
     @Post()
-    addMedicine(@Body('medicine') medicine: Medicine) {
-        this.medicineService.insertMedicine(medicine);
-        return {id: medicine.id};
+    async addMedicine(@Body('medicine') medicine: Medicine) {
+         const result =await this.medicineService.insertMedicine(medicine);
+        return {id: result.id};
     }
 
     @Get()
-    getAllMedicine() {
-        const medicines = this.medicineService.getAllMedicine();
+    async getAllMedicine() {
+        const medicines = await this.medicineService.getAllMedicine();
         return {medicines: medicines};
     }
 
     @Get(':id')
-    getSingleMedicine( @Param('id') medicineId : number ) {
-        const medicine = this.medicineService.getSingleMedicine(medicineId);
-        return {medicine: medicine};
+    async getSingleMedicine( @Param('id') medicineId : string ) {
+        const medicine =await this.medicineService.getSingleMedicine(medicineId);
+       return medicine;
     }
 
     @Patch(':id')
-    updateMedicine( @Param('id') medicineId : number, @Body('medicine') medicine: Medicine) {
-        const updatedMedicine = this.medicineService.updateMedicine( medicineId, medicine);
-        return {medicine: updatedMedicine};
+    async updateMedicine( @Param('id') medicineId : string, @Body('medicine') medicine: Medicine) {
+       const updatedMedicine =await this.medicineService.updateMedicine( medicineId, medicine);
+       return {medicine: updatedMedicine};
     }
 
     @Delete(':id')
-    deleteMedicine( @Param('id') medicineId : number) {
-        const newMedicineList = this.medicineService.deleteMedicine(medicineId);
-        return {medicines: newMedicineList};
+    async deleteMedicine( @Param('id') medicineId : string) {
+       await this.medicineService.deleteMedicine(medicineId);
+       return null;
     }
 }

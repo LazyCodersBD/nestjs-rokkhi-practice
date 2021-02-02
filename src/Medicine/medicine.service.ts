@@ -1,59 +1,88 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
+import { InjectModel } from "@nestjs/mongoose";
+import { Model } from "mongoose";
+import { title } from "process";
 import { Medicine } from "./medicine.model";
 
 @Injectable()
-export class MedicineService{
+export class MedicineService {
 
     medicines: Medicine[] = [];
 
-    insertMedicine(medicine: Medicine): number{
-        this.medicines.push(medicine);
-        return medicine.id;
+    constructor(@InjectModel("Medicine") private readonly medicineModel: Model<Medicine>) { }
+
+    async insertMedicine(medicine: Medicine) {
+
+        const newMedicine = new this.medicineModel({
+            _id: "M"+Date.now(),
+            title: medicine.title,
+            description: medicine.description,
+            price: medicine.price
+        });
+
+        const result = await newMedicine.save();
+        console.log(result);
+
+        return result as Medicine;
     }
 
-    getAllMedicine(): Medicine[] {
-    return [...this.medicines];
+    async getAllMedicine(){
+        const medicines = await this.medicineModel.find().exec();
+        return medicines.map(newMedicine=> ({
+            id: newMedicine.id,
+             title: newMedicine.title,
+              description: newMedicine.description,
+               price: newMedicine.price
+        }));
+        //return medicines as Medicine[];
     }
 
-    getSingleMedicine(id: number): Medicine{
-        const medicine = this.findMedicine(id)[0];
-        return {...medicine};
+  async  getSingleMedicine(id: string){
+        const medicine = await this.findMedicine(id);
+        return {id: medicine.id, title: medicine.title, description: medicine.description, price: medicine.price};
     }
 
 
-    updateMedicine(medicineId: number, medicine: Medicine): Medicine{
-        const [currentMedicineData, index] = this.findMedicine(medicineId);
-    
-        const updatedMedicineData = {...currentMedicineData};
+    async updateMedicine(medicineId: string, medicine: Medicine): Promise<Medicine>{
+        const updatedMedicine  = await this.findMedicine(medicineId);
 
         if(medicine.title){
-            updatedMedicineData.title = medicine.title;
+            updatedMedicine.title = medicine.title;
         }
         if(medicine.description){
-            updatedMedicineData.description = medicine.description;
+            updatedMedicine.description = medicine.description;
         }
         if(medicine.price){
-            updatedMedicineData.price = medicine.price;
+            updatedMedicine.price = medicine.price;
         }
-        this.medicines[index] = updatedMedicineData
-        return {...this.medicines[index]};
+        updatedMedicine.save();
+        return updatedMedicine as Medicine;
     }
 
 
-    deleteMedicine(medicineId: number): Medicine[]{
-        const index = this.findMedicine(medicineId)[1];
-        this.medicines.splice(index, 1);
-        return this.medicines;
+    async deleteMedicine(medicineId: string) {
+        const result =  await this.medicineModel.deleteOne({_id: medicineId}).exec();
+        console.log(result);
+        
+        if(result.n===0){
+            throw new NotFoundException("Could not find medicine.");
+        }
+
     }
 
 
-    private findMedicine(id: number):[Medicine, number]{
-        const medicineIndex = this.medicines.findIndex( data => data.id===id);
-        const medicine = this.medicines[medicineIndex];
-        if(!medicine){
-            throw new NotFoundException("Could not found medicine.")
+    private async findMedicine(id: string):Promise<Medicine>{
+        let medicine;
+        try{
+            medicine = await this.medicineModel.findById(id);
+        }catch(error){
+            throw new NotFoundException("Could not find medicine.");
         }
-        return [medicine, medicineIndex];
+        console.log(id);
+        if (!medicine) {
+            throw new NotFoundException("Could not find medicine.");
+        }
+        return medicine as Medicine;
     }
 
 }
